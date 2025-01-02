@@ -1,0 +1,68 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.8">
+  <POU Name="FB_FormatTime" Id="{12ec63d0-a655-4ec7-ae35-a5aacd613510}" SpecialFunc="None">
+    <Declaration><![CDATA[
+FUNCTION_BLOCK FB_FormatTime
+VAR_INPUT
+    Elapsed_Time : TIME; 
+END_VAR
+
+VAR_OUTPUT
+    FormattedTime : STRING(50); 
+END_VAR
+
+VAR
+    Hours : UDINT;          
+    Minutes : UDINT;          
+    Seconds : UDINT;          
+    Milliseconds : UDINT;     
+    TotalMilliseconds : UDINT; 
+	
+	TimeAsMilliseconds : UDINT;
+	
+	
+	
+	
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+
+    // Convert TIME to total milliseconds
+ 
+    TimeAsMilliseconds := TO_UDINT(Elapsed_Time); 
+
+    // Extract hours, minutes, seconds, and milliseconds from total time in milliseconds
+	
+    Hours :=(TimeAsMilliseconds/3600000);  
+    TimeAsMilliseconds := (TimeAsMilliseconds MOD 3600000);
+
+    Minutes := (TimeAsMilliseconds / 60000);   
+    TimeAsMilliseconds := TimeAsMilliseconds MOD 60000;
+
+    Seconds := (TimeAsMilliseconds / 1000);   
+    Milliseconds := (TimeAsMilliseconds MOD 1000);
+
+    // Format the time as "hh:mm:ss.ms"
+	
+    FormattedTime := CONCAT(TO_STRING(Hours), ':');
+    FormattedTime := CONCAT(FormattedTime, TO_STRING(Minutes));
+    FormattedTime := CONCAT(FormattedTime, ':');
+    FormattedTime := CONCAT(FormattedTime, TO_STRING(Seconds));
+    FormattedTime := CONCAT(FormattedTime, '.');
+    FormattedTime := CONCAT(FormattedTime, TO_STRING(Milliseconds));
+
+
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_FormatTime">
+      <LineId Id="35" Count="2" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="38" Count="2" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="41" Count="9" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="51" Count="9" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

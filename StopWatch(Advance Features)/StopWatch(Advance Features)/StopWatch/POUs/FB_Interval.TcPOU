@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.8">
+  <POU Name="FB_Interval" Id="{b5f63a85-0ecb-4507-902a-f3cb0580e823}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_Interval
+VAR_INPUT
+	bInterval:BOOL;
+	ET_Current:Time;
+	Pressed:BOOL:=FALSE;
+	cInterval:INT:=0;
+END_VAR
+VAR_OUTPUT
+	Intervals: ARRAY[1..20] OF TIME;
+	
+END_VAR
+VAR
+	i:INT;
+	
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF bInterval AND  Pressed THEN
+	cInterval:=cInterval + 1;
+	bInterval:=FALSE;
+	Pressed:=false;
+	
+	
+	IF cInterval > 20 THEN
+		cInterval:=20;
+		FOR i:=1 TO 19 DO 
+			Intervals[i]:=Intervals[i+1];
+			
+		END_FOR
+	END_IF
+	Intervals[cInterval]:=ET_Current;
+END_IF
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_Interval">
+      <LineId Id="1" Count="1" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="5" Count="3" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="9" Count="2" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="24" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
