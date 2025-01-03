@@ -1,0 +1,285 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="MAIN" Id="{7c92c0d4-ea81-43d0-82a9-39f782d24c91}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	
+	TimerP01: TON;
+	Timer02: TON;
+	
+	MotorActive: BOOL;
+	P_COUNT: INT:=0;
+	P_LIMIT: INT:=3;
+	
+	M_COUNT:INT:=0;
+	M_LIMIT: INT:=3;
+	
+	Wastage: INT:=0;
+	FinalProduct: INT:=0;
+	
+	bS1Detect: BOOL;
+	bS2Detect: BOOL; 
+	bs3Detect: BOOL;
+	bs4Detect: BOOL; 
+	bs5Detect: BOOL;
+	
+	tTimer01: TOF;
+	timerReset: RS;
+	bs1triger: R_TRIG;
+	bs4Triger: R_TRIG;
+	bs5Triger: F_TRIG;
+	bs2Triger: R_TRIG;
+	
+	
+	bs5RTriger: R_TRIG;
+	
+	bA2Timer: TON;
+	
+	bA2OpenTime: TON;
+	bA1PopTimer: TON;
+	bs3triger: R_TRIG;
+	fbTimerOn: TON;
+	fbTimerOff: TOF;
+	
+	timerOnRunning: BOOL:=FALSE;
+	
+	
+	
+	lightOnTimer: TOF;
+	bA3PopTime: TON;
+	bs5RDetect: BOOL;
+	Plactic_Count: INT;
+	MetalCount: INT;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//......................................Motor Control........................................
+
+//Start the motor
+IF GVL.bStart_B1 OR GVL.start THEN
+    MotorActive:=TRUE;	
+END_IF
+
+IF MotorActive THEN
+	GVL.bMotor_M1:=TRUE;
+	GVL.bMotor_M2:=TRUE;
+END_IF
+
+//Stop the motor
+IF GVL.bStop_B2 OR GVL.STOP THEN
+    GVL.bMotor_M1 := FALSE;
+    GVL.bMotor_M2 := FALSE;
+	MotorActive:=FALSE;
+END_IF;
+
+//......................................Edge Detection........................................
+
+//bs1 rising edge detection
+bs1triger(CLK:=GVL.bS1);
+IF bs1triger.Q THEN
+	bs1Detect:= TRUE;	
+END_IF
+
+//bs2 rising edge detection 
+bs2Triger(CLK:=GVL.bS2);
+IF bs2Triger.Q THEN	
+	bs2Detect:=TRUE;
+END_IF
+//bs3 rising edge detection
+bs3triger(CLK:=GVL.bS3);
+IF bs3Triger.Q THEN
+	bs3Detect:=TRUE;
+END_IF
+
+//bs4 Rising edge detection
+bs4Triger(CLK:=GVL.bS4 );
+IF bs4Triger.Q THEN
+	bs4Detect:=TRUE;	
+END_IF
+//bs5 Rising edge detection
+bs5RTriger(CLK:=GVL.bS4);
+IF bs5RTriger.Q THEN
+	bs5RDetect:=TRUE;	
+END_IF
+
+//bs5 Falling edge detection
+bs5Triger(CLK:=GVL.bS5);
+IF bs5Triger.Q THEN
+	bs5Detect:=TRUE;
+END_IF
+
+//.....................................Plastic Sortor Control....................................
+
+//bs1 sensor detection and bA1 solenoid Activation
+IF bs1Detect and NOT(bs2Detect)THEN
+	
+	IF P_COUNT < P_LIMIT THEN
+		//tTimer01(IN:=bs1Detect AND NOT(GVL.bS2),PT:= T#100MS , Q=> , ET=> );
+	
+		TimerP01(IN:=TRUE , PT:= T#800mS, );
+		IF TimerP01.Q THEN
+			
+			//IF GVL.bA1=FALSE THEN
+				GVL.bA1:=TRUE;
+				bA1PopTimer(IN:=TRUE, PT:=T#100MS );
+				
+				IF bA1PopTimer.Q THEN
+					GVL.bA1:=FALSE;
+					P_COUNT := P_COUNT+1;
+					bs1Detect:=FALSE;
+					
+				END_IF
+			
+		END_IF
+		
+	ELSE		
+		GVL.bA1:=FALSE;	
+	END_IF 
+ELSE
+	TimerP01(IN := FALSE);
+    bA1PopTimer(IN := FALSE);
+	//tTimer01(IN := FALSE);	
+END_IF
+IF P_COUNT>0 THEN
+	Plactic_Count:=P_COUNT;
+END_IF
+
+
+
+//............................................Metal Sortor Control........................................
+
+// Counting and bA2 solenoid activation
+IF M_COUNT < M_LIMIT THEN	
+	IF bs2Detect AND bs1Detect THEN
+		bA2Timer(IN:=TRUE, PT:=T#1S );
+		IF bA2Timer.Q THEN
+			//IF GVL.bA2=FALSE THEN
+				GVL.bA2:=TRUE;
+				
+				bA2OpenTime(IN:=TRUE , PT:=T#1S);
+				
+				IF bA2OpenTime.Q THEN
+					GVL.bA2:=FALSE;
+					M_COUNT:=M_COUNT+1;
+					
+					bs2Detect:=FALSE;
+				END_IF
+
+		END_IF
+	
+	ELSE
+		
+		bA2Timer(IN:=FALSE);
+		bA2OpenTime(IN:=FALSE);
+	END_IF
+ELSE 
+	M_COUNT:=0;
+	
+END_IF
+IF M_COUNT>0 THEN
+	MetalCount:=M_COUNT;
+	
+END_IF
+
+
+// the plastic count -
+IF bs2Detect THEN
+	IF P_COUNT > 0 THEN
+		P_COUNT := P_COUNT - 1;
+	END_IF
+END_IF
+
+
+//......................................Wastage Management...................................................
+
+IF bs4Detect THEN
+    
+    IF  bs5Detect  THEN
+        GVL.bA3 := FALSE;   
+        FinalProduct:=FinalProduct+1;
+        bs4Detect := FALSE; 
+        bs5Detect := FALSE; 
+    ELSE
+        
+        Timer02(IN := TRUE, PT := T#600MS);  
+        IF Timer02.Q THEN
+            GVL.bA3 := TRUE; 
+            bA3PopTime(IN := TRUE, PT := T#100MS);  
+            
+            IF bA3PopTime.Q THEN
+                GVL.bA3 := FALSE;  
+                Wastage := Wastage + 1;  
+                bs4Detect := FALSE; 
+            END_IF
+        END_IF
+    END_IF
+ELSE
+   
+    GVL.bA3 := FALSE;
+    Timer02(IN := FALSE);
+    bA3PopTime(IN := FALSE);
+END_IF
+
+
+//..................................Blinking the light when wastage is detected................................
+
+fbTimerOff(IN:=bs4Detect AND bs5RDetect,PT:=T#2S);
+IF fbTimerOff.Q THEN
+	timerOnRunning:= NOT timerOnRunning;
+		//fbTimerOff(IN:=FALSE);
+ELSE
+	GVL.LightOn:=FALSE;
+	fbTimerOff(IN:=False);
+				
+END_IF
+	GVL.LightOn:=timerOnRunning;
+	
+
+//LIGHT ON (FINAL PRODUCT INDICATION)
+lightOnTimer(IN:=bs5RDetect , PT:=T#2S);
+IF lightOnTimer.Q THEN	
+		timerOnRunning:=TRUE;
+ELSE
+	GVL.LightOn:=FALSE;
+	lightOnTimer(IN:=FALSE);
+END_IF
+GVL.LightOn:=timerOnRunning;
+
+
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="46" Count="42" />
+      <LineId Id="275" Count="3" />
+      <LineId Id="274" Count="0" />
+      <LineId Id="89" Count="38" />
+      <LineId Id="298" Count="2" />
+      <LineId Id="287" Count="1" />
+      <LineId Id="128" Count="15" />
+      <LineId Id="292" Count="0" />
+      <LineId Id="144" Count="5" />
+      <LineId Id="293" Count="0" />
+      <LineId Id="150" Count="6" />
+      <LineId Id="294" Count="0" />
+      <LineId Id="297" Count="0" />
+      <LineId Id="295" Count="1" />
+      <LineId Id="290" Count="0" />
+      <LineId Id="157" Count="1" />
+      <LineId Id="302" Count="1" />
+      <LineId Id="305" Count="0" />
+      <LineId Id="301" Count="0" />
+      <LineId Id="306" Count="1" />
+      <LineId Id="164" Count="1" />
+      <LineId Id="191" Count="2" />
+      <LineId Id="263" Count="0" />
+      <LineId Id="196" Count="33" />
+      <LineId Id="285" Count="0" />
+      <LineId Id="230" Count="2" />
+      <LineId Id="259" Count="0" />
+      <LineId Id="234" Count="0" />
+      <LineId Id="247" Count="11" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

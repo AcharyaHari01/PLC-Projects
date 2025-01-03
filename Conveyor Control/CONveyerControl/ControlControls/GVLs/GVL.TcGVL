@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <GVL Name="GVL" Id="{3e56ae32-c00d-4e39-95d1-7d3e1df126f4}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+		//Input
+	bS1 AT %I*: BOOL;
+	bS2 AT %I*: BOOL;
+	bS3 AT %I*: BOOL;
+	bS4 AT %I*: BOOL;
+	bS5 AT %I*: BOOL;
+	
+	bStart_B1 AT %I* : BOOL;
+	bStop_B2 AT %I* : BOOL;
+	
+	start: BOOL;
+	stop:BOOL;
+	
+	//output
+	bMotor_M1 AT %Q* : BOOL;
+	bMotor_M2 AT %Q* : BOOL;
+	bA1 AT %Q* : BOOL;
+	bA2 AT %Q* : BOOL;
+	bA3 AT %Q* : BOOL;
+	LightOn AT %Q* : BOOL;
+	
+	
+	
+	bA1PLACTIC_COUNT: INT;
+	CD: INT;
+	LOAD: INT;
+	PV: INT;
+	Q: INT;
+	CV: INT;
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>
